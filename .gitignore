@@ -1,0 +1,39 @@
+# --- System / OS (不浄なOSのゴミ) ---
+.DS_Store
+Thumbs.db
+.directory
+*~
+*.swp
+*.swo
+
+# --- Python (蛇の抜け殻) ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+
+# --- Environment Variables (秘仏) ---
+# APIキーやパスワード設定ファイルは絶対にコミットしない
+.env
+.env.local
+
+# --- IDE / Editors (職人の道具) ---
+.vscode/
+.idea/
+
+# --- Logs (過去のカルマ) ---
+*.log
+
+# --- Audio / Media (重すぎる供物) ---
+# 必要に応じてWAVなどの巨大な素材を除外するならコメントアウトを外す
+# *.wav
+# *.aiff
+# *.mp3
+
+# --- Docker ---
+docker-compose.override.yml
