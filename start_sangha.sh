@@ -1,27 +1,51 @@
 #!/bin/bash
-SESSION="sangha_sim"
+# start_sangha.sh
+# This script constructs the digital Dharma hall using tmux.
+# One pane for the conductor (Upajjhaya), and four for the monks (Bhikkhus).
+# Logs are created for each process to capture their final words (errors).
+SESSION="sangha_ritual"
 
-# すでにセッションがあれば殺して再起動（リセット）
+# Kill any existing session to reset the Karma.
 tmux kill-session -t $SESSION 2>/dev/null
+echo "Cleared old Karma. Starting a new session: $SESSION"
 
-# 1. 新規セッション作成 (左上: ProBook役)
-# 少し早口な設定で起動
-tmux new-session -d -s $SESSION -n "DigitalHall" "python3 monk_markov.py ProBook"
+# --- Clean up old logs before the ritual begins ---
+rm -f conductor.log monk_*.log
+echo "Old log files have been cleared."
 
-# 2. 画面分割 (右上: S50-1)
-tmux split-window -h -t $SESSION "python3 monk_markov.py S50-1"
 
-# 3. 画面分割 (左下: S50-2)
-tmux split-window -v -t $SESSION "python3 monk_markov.py S50-2"
+# --- Create the Dharma Hall (Tmux Layout) ---
 
-# 4. 画面分割 (右下: S50-3)
-# まず右上のペイン(1番)を選択してから分割
+# 1. Create a new session for the Conductor (Master Node).
+# The '; read ...' part keeps the pane open after the script finishes or errors out.
+tmux new-session -d -s $SESSION -n "Conductor" "python3 upajjhaya_conductor.py; read -p 'Conductor finished. Press Enter to close.'"
+echo "Upajjhaya's seat is prepared."
+
+# 2. Split for Bhikkhu-1
+tmux split-window -h -t 0 "python3 monk_markov.py Bhikkhu-1; read -p 'Bhikkhu-1 has fallen silent. Press Enter.'"
+echo "Bhikkhu-1 has entered the hall."
+
+# 3. Split for Bhikkhu-2
+tmux select-pane -t 0
+tmux split-window -v -t 0 "python3 monk_markov.py Bhikkhu-2; read -p 'Bhikkhu-2 has fallen silent. Press Enter.'"
+echo "Bhikkhu-2 has entered the hall."
+
+# 4. Split for Bhikkhu-3
 tmux select-pane -t 1
-tmux split-window -v -t $SESSION "python3 monk_markov.py S50-3"
+tmux split-window -v -t 1 "python3 monk_markov.py Bhikkhu-3; read -p 'Bhikkhu-3 has fallen silent. Press Enter.'"
+echo "Bhikkhu-3 has entered the hall."
 
-# 5. レイアウトを「タイル状」に整列
+# 5. Split for Bhikkhu-4
+# Let's ensure this pane is created correctly, attached to a stable pane.
+tmux select-pane -t 2 # Pane 2 should be the bottom-left one
+tmux split-window -h -t 2 "python3 monk_markov.py Bhikkhu-4; read -p 'Bhikkhu-4 has fallen silent. Press Enter.'"
+echo "Bhikkhu-4 has entered the hall."
+
+
+# Arrange the panes in a tiled layout for a proper Sangha view.
 tmux select-layout -t $SESSION tiled
+echo "The Dharma hall is arranged."
 
-# 6. セッションに接続（儀式開始）
+# Attach to the session to begin the ritual.
+echo "Attaching to the session. The ritual is about to begin."
 tmux attach -t $SESSION
-
