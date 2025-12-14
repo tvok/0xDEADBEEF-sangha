@@ -1,51 +1,46 @@
 #!/bin/bash
-# start_sangha.sh
-# This script constructs the digital Dharma hall using tmux.
-# One pane for the conductor (Upajjhaya), and four for the monks (Bhikkhus).
-# Logs are created for each process to capture their final words (errors).
+# start_sangha.sh - A deterministic tmux launcher for the Sangha
+
 SESSION="sangha_ritual"
+PD_IP="127.0.0.1"
+PD_PORT="3000"
+WORKDIR="/Users/frost/digital_temple"
 
-# Kill any existing session to reset the Karma.
-tmux kill-session -t $SESSION 2>/dev/null
-echo "Cleared old Karma. Starting a new session: $SESSION"
+# Kill any existing session
+tmux kill-session -t $SESSION &>/dev/null || true
+sleep 1
 
-# --- Clean up old logs before the ritual begins ---
-rm -f conductor.log monk_*.log
-echo "Old log files have been cleared."
+echo "Configuring Dharma Hall..."
 
+# Create a session with a single window.
+tmux new-session -d -s $SESSION -c "$WORKDIR" -x 160 -y 40
 
-# --- Create the Dharma Hall (Tmux Layout) ---
-
-# 1. Create a new session for the Conductor (Master Node).
-# The '; read ...' part keeps the pane open after the script finishes or errors out.
-tmux new-session -d -s $SESSION -n "Conductor" "python3 upajjhaya_conductor.py; read -p 'Conductor finished. Press Enter to close.'"
-echo "Upajjhaya's seat is prepared."
-
-# 2. Split for Bhikkhu-1
-tmux split-window -h -t 0 "python3 monk_markov.py Bhikkhu-1; read -p 'Bhikkhu-1 has fallen silent. Press Enter.'"
-echo "Bhikkhu-1 has entered the hall."
-
-# 3. Split for Bhikkhu-2
+# --- Create a deterministic 2x2 layout ---
+# This creates pane 1 below pane 0
+tmux split-window -v -c "$WORKDIR"
+# Select the top pane (0) and split it horizontally. This creates pane 2 to the right.
 tmux select-pane -t 0
-tmux split-window -v -t 0 "python3 monk_markov.py Bhikkhu-2; read -p 'Bhikkhu-2 has fallen silent. Press Enter.'"
-echo "Bhikkhu-2 has entered the hall."
-
-# 4. Split for Bhikkhu-3
+tmux split-window -h -c "$WORKDIR"
+# Select the bottom pane (1) and split it horizontally. This creates pane 3 to the right.
 tmux select-pane -t 1
-tmux split-window -v -t 1 "python3 monk_markov.py Bhikkhu-3; read -p 'Bhikkhu-3 has fallen silent. Press Enter.'"
-echo "Bhikkhu-3 has entered the hall."
+tmux split-window -h -c "$WORKDIR"
 
-# 5. Split for Bhikkhu-4
-# Let's ensure this pane is created correctly, attached to a stable pane.
-tmux select-pane -t 2 # Pane 2 should be the bottom-left one
-tmux split-window -h -t 2 "python3 monk_markov.py Bhikkhu-4; read -p 'Bhikkhu-4 has fallen silent. Press Enter.'"
-echo "Bhikkhu-4 has entered the hall."
+# Wait for all panes to be fully initialized
+sleep 2
 
+# --- Send commands to the well-defined panes ---
+# Pane mapping after splits: 0=TL, 2=TR, 1=BL, 3=BR
+PANE_CMD="python3 monk_markov.py"
+PD_ARGS="--pd-enable --pd-ip $PD_IP --pd-port $PD_PORT"
 
-# Arrange the panes in a tiled layout for a proper Sangha view.
-tmux select-layout -t $SESSION tiled
-echo "The Dharma hall is arranged."
+# Use the full session:window.pane format for addressing and assign unique listen ports
+tmux send-keys -t "${SESSION}:0.0" "$PANE_CMD Bhikkhu-1 $PD_ARGS --listen-port 5005" Enter # Top-Left
+tmux send-keys -t "${SESSION}:0.2" "$PANE_CMD Bhikkhu-2 $PD_ARGS --listen-port 5006" Enter # Top-Right
+tmux send-keys -t "${SESSION}:0.1" "$PANE_CMD Bhikkhu-3 $PD_ARGS --listen-port 5007" Enter # Bottom-Left
+tmux send-keys -t "${SESSION}:0.3" "$PANE_CMD Bhikkhu-4 $PD_ARGS --listen-port 5008" Enter # Bottom-Right
 
-# Attach to the session to begin the ritual.
-echo "Attaching to the session. The ritual is about to begin."
+echo "✓ 4 Bhikkhus summoned."
+sleep 1
+
+# Attach to the session
 tmux attach -t $SESSION

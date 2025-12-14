@@ -7,8 +7,9 @@ import sys
 import time
 import threading
 import traceback # For logging the final words (errors)
-from pythonosc import dispatcher
+from pythonosc.dispatcher import Dispatcher
 from pythonosc import osc_server
+from argparse import ArgumentParser
 
 # --- Sutra Corpus (The Source of Dharma) ---
 corpus = """
@@ -117,31 +118,37 @@ def log_error(monk_id, e):
     print(f"[{monk_id}] An error was recorded in {log_file}.")
 
 if __name__ == "__main__":
-    MONK_ID = sys.argv[1] if len(sys.argv) > 1 else "Bhikkhu"
+    parser = ArgumentParser(description="Bhikkhu Node - 0xDEADBEEF-sangha")
+    parser.add_argument("monk_id", type=str, help="The ID of the monk (e.g., Bhikkhu-1)")
+    parser.add_argument("--pd-enable", action="store_true", help="Enable OSC client for Pure Data.")
+    parser.add_argument("--pd-ip", default="127.0.0.1", type=str, help="IP address for the Pure Data OSC client.")
+    parser.add_argument("--pd-port", default=3000, type=int, help="Port for the Pure Data OSC client.")
+    parser.add_argument("--listen-port", default=5005, type=int, help="Port for the monk to listen for Dharma signals.")
+    args = parser.parse_args()
+
+    MONK_ID = args.monk_id
     SERVER = None
     chant_thread = None
     
     try:
-        # --- Setup OSC Server to listen to the void ---
-        listen_ip = "0.0.0.0"
-        listen_port = 5005
-
-        dispatcher = dispatcher.Dispatcher()
+        # --- OSC Server Setup FIRST ---
+        # Create dispatcher before creating the server
+        dispatcher = Dispatcher()
         dispatcher.map("/ritual/chant/start", handle_chant_start)
         dispatcher.map("/ritual/chant/stop", handle_chant_stop)
         dispatcher.map("/ritual/end", handle_ritual_end)
-        dispatcher.set_default_handler(default_handler)
-
-        # Allow multiple monks to share the same port (SO_REUSEADDR).
-        osc_server.OSCUDPServer.allow_reuse_address = True
-        SERVER = osc_server.ThreadingOSCUDPServer((listen_ip, listen_port), dispatcher)
         
-        print(f"[{MONK_ID}] System booting... Ordaining as a digital Bhikkhu.", flush=True)
+        # --- Setup OSC Server to listen to the void ---
+        listen_ip = "0.0.0.0"
+        # Use the port passed from the command line
+        listen_port = args.listen_port
+        SERVER = osc_server.ThreadingOSCUDPServer((listen_ip, listen_port), dispatcher)
         print(f"[{MONK_ID}] Listening for Dharma on UDP port {listen_port}", flush=True)
 
         # --- Start the Chanting Thread ---
         chant_thread = threading.Thread(target=chant_loop, args=(MONK_ID,))
         chant_thread.start()
+        dispatcher.set_default_handler(default_handler)
 
         # --- Start Listening for OSC Messages ---
         SERVER.serve_forever()

@@ -6,7 +6,8 @@
 import time
 import argparse
 import traceback # For logging the final words (errors)
-from pythonosc.udp_client import UDPClient
+import socket
+from pythonosc.udp_client import SimpleUDPClient
 
 # --- Configuration ---
 # The IP address for broadcasting. '255.255.255.255' sends to all on the local network.
@@ -26,17 +27,10 @@ def log_error(e):
     print(f"An error was recorded in {LOG_FILE}. Check the log for the full scripture.")
 
 def main(ip, port):
-    """The main ritual sequence."""
-    
-    # Establish the connection to the void (broadcast).
-    try:
-        client = UDPClient(ip, port, allow_broadcast=True)
-        print("--- 0xDEADBEEF-sangha Digital Upasampada ---")
-        print(f"Broadcasting the Dharma to {ip}:{port}. The Gate of Sweet Dew is open.")
-    except Exception as e:
-        print(f"Error creating the OSC client: {e}")
-        print("Could not open the gate. Check network permissions.")
-        return
+    """The main function to conduct the ritual."""
+    client = SimpleUDPClient(ip, port)
+    # Enable broadcasting on the socket
+    client._sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     try:
         # 1. 入堂 (Nyūdō) - Announce the start of the ritual.

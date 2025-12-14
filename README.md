@@ -62,6 +62,6 @@ Note: This project is an independent artistic expression and is not officially a
 🛡 License & Mantra
  * License: MIT (Metta Intentional Transmission)
  * Mantra: 0xDEADBEEF - Offering the dead flesh of hardware to the void.
-Created for the Myoshin-ji Founder's Memorial (Kaizan-ki).
+Created for the Myoshin-ji Founder's Memorial (Kaisan-ki).
 
 
